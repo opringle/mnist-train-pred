@@ -13,7 +13,7 @@ class ConvPoolBlock(gluon.nn.HybridSequential):
             self.add(gluon.nn.BatchNorm(axis=1))
             self.add(gluon.nn.Activation(activation='relu'))
             if downsample:
-                self.add(gluon.nn.MaxPool2D(pool_size=(2, 2)))
+                self.add(gluon.nn.MaxPool2D(pool_size=(3, 3), strides=(2, 2), padding=(1, 1)))
 
 
 class ConvLayers(gluon.nn.HybridBlock):
@@ -75,7 +75,14 @@ if __name__ == "__main__":
     nd.waitall()
     print("Conv Block Unit-test success!")
 
-    x = nd.random.uniform(shape=(32, 28, 28, 1))
+    block = ConvPoolBlock(num_filters=10, downsample=False)
+    block.initialize()
+    y = block(x)
+    assert y.shape == (32, 10, 28, 28)
+    nd.waitall()
+    print("Conv Block Downsample Unit-test success!")
+
+    x = nd.random.uniform(shape=(32, 28, 28, 1))  # data comes in this shape
     block = ConvLayers()
     block.initialize()
     y = block(x)

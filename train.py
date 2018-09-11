@@ -26,11 +26,11 @@ def evaluate_accuracy(data_iterator, net, ctx):
 
 def train(hyperparameters, channel_input_dirs, num_gpus, **kwargs):
     """
-    train function formatted for use with amazon sagemaker
+    train function formatted for use with amazon sagemaker (hence unused arguments)
     :param hyperparameters: dict of network hyperparams
     :param channel_input_dirs: dict of paths to train and val data
-    :param num_gpus: number of gpus to distribute training on
-    :return: gluon neural network
+    :param num_gpus: number of gpus to distribute training on (0 for cpu)
+    :return: gluon neural network with learned network parameters
     """
     ctx = mx.gpu() if num_gpus > 0 else mx.cpu()
     logging.info("Training context: {}".format(ctx))
@@ -47,9 +47,10 @@ def train(hyperparameters, channel_input_dirs, num_gpus, **kwargs):
         batch_size=batch_size,
         num_workers=multiprocessing.cpu_count(),
         shuffle=False)
+    logging.info("{} train records and {} test records (after padding last batch)".
+                 format(len(train_data) * batch_size, len(test_data) * batch_size))
 
-    logging.info("Defining network architecture")
-    net = model.CnnClassifier(dropout=0, num_label=10)
+    net = model.CnnClassifier(dropout=hyperparameters.get('dropout', 0), num_label=hyperparameters.get('num_label', 10))
     logging.info("Network architecture: {}".format(net))
 
     if not hyperparameters.get('no_hybridize', False):
@@ -67,9 +68,9 @@ def train(hyperparameters, channel_input_dirs, num_gpus, **kwargs):
     if not os.path.exists('checkpoint'):
         os.makedirs('checkpoint')
 
-    sm_loss = gluon.loss.SoftmaxCrossEntropyLoss()
-    epochs = hyperparameters.get('epochs', 10)
-    logging.info("Training for {} epochs".format(epochs))
+    sm_loss = gluon.loss.SoftmaxCrossEntropyLoss()  # softmax function followed by cross entropy loss
+    epochs = hyperparameters.get('epochs', 3)
+    logging.info("Training for {} epochs...".format(epochs))
     for e in range(epochs):
         epoch_loss = 0
         weight_updates = 0
@@ -79,14 +80,14 @@ def train(hyperparameters, channel_input_dirs, num_gpus, **kwargs):
             with autograd.record():
                 pred = net(data)
                 loss = sm_loss(pred, label)
-                loss.backward()
+            loss.backward()
             optimizer.step(data.shape[0])
             epoch_loss += nd.mean(loss).asscalar()
             weight_updates += 1
         train_accuracy = evaluate_accuracy(train_data, net, ctx)
         val_accuracy = evaluate_accuracy(test_data, net, ctx)
         net.save_parameters(os.path.join('checkpoint', 'epoch' + str(e) + '.params'))
-        logging.info("Epoch {}: Train Loss = {:.4} Train Accuracy = {:.4} Validation Accuracy = {:.4}".
+        logging.info("Epoch{}: Average Record Train Loss= {:.4} Train Accuracy= {:.4} Validation Accuracy= {:.4}".
                      format(e, epoch_loss / weight_updates, train_accuracy, val_accuracy))
     return net
 
@@ -124,5 +125,7 @@ if __name__ == "__main__":
                        help='number of training examples per batch')
 
     args = parser.parse_args()
+
+    # unspecified arguments are specified in train() to negate need to specify all hyperparameters with sagemaker
     hyp = {k: v for k, v in vars(args).items() if v is not None}
     train(hyperparameters=hyp, channel_input_dirs={'train': None, 'val': None}, num_gpus=args.gpus)
