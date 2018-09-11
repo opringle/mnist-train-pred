@@ -7,7 +7,6 @@ from src import model
 import numpy as np
 import cv2
 import os
-import multiprocessing
 
 
 class ModelAdapter(object):
@@ -38,11 +37,11 @@ def transform():
     data = mx.nd.array(image).reshape((1, 28, 28, 1))
     data = data.astype(np.float32) / 255
 
-    output = net(orig_data.as_in_context(mx.cpu()))
-    print("Output layer sums to: {}".format(mx.nd.sum(output)))
+    output = net(data.as_in_context(mx.cpu()))
+    sm_output = mx.nd.exp(output) / mx.nd.sum(mx.nd.exp(output))[0]
 
-    pred = int(mx.nd.argmax(output, axis=1).asscalar())
-    conf = float(mx.nd.max(output, axis=1).asscalar())
+    pred = int(mx.nd.argmax(sm_output, axis=1).asscalar())
+    conf = float(mx.nd.max(sm_output, axis=1).asscalar())
 
     response = ModelAdapter.response(float(pred), float(conf), time_taken=time.clock() - start_time)
     logging.info('Transform response: %r', response)
@@ -73,20 +72,6 @@ if __name__ == '__main__':
     logging.info("Loading model")
     net = model.CnnClassifier(dropout=0, num_label=10)
     net.load_parameters(args.params_file)
-
-    # Remove once confidence sums correctly
-    test_data = mx.gluon.data.DataLoader(
-        mx.gluon.data.vision.MNIST(train=False, transform=lambda data, label: (data.astype(np.float32) / 255, label)),
-        batch_size=5,
-        num_workers=multiprocessing.cpu_count(),
-        shuffle=False)
-
-    for i, (data, label) in enumerate(test_data):
-        if i < 1:
-            orig_data = data
-            output = net(data)
-            max_conf = mx.nd.max(data, axis=5)
-            print(max_conf)
 
     logging.info("Starting server")
     bottle.run(host=args.host, port=args.port, debug=True)

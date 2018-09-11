@@ -1,5 +1,6 @@
-# mnist-train-pred
-Train and deploy mxnet models for mnist prediction
+# mnist-train-predict
+
+Train and deploy mxnet gluon models for mnist prediction.
 
 ## Additions 
 
@@ -17,8 +18,9 @@ Train and deploy mxnet models for mnist prediction
     - `$ python server.py --params-file=./checkpoint/epoch10.params`
 - [Download and unzip mnist jpegs](https://www.kaggle.com/scolianni/mnistasjpg)
 - Send a request to the server
-    - `curl -X POST -F "image=@<path to a jpg>" http://localhost:8080/transform`
+    - `curl -X POST -F "image=@<path to a jpg you downloaded>" http://localhost:8080/transform`
 
-## ToDo
+## Notes
 
-- [ ] Softmax output must sum to 1
+- Hyperparameters have not been optimized. This should be done with access to a gpu.
+- Model server operates on cpu.
