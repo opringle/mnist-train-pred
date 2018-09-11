@@ -56,17 +56,17 @@ if __name__ == '__main__':
 
     # Computation
     group = parser.add_argument_group('Computation arguments')
-    parser.add_argument('--params-file', type=str, required=True,
+    group.add_argument('--params-file', type=str, required=True,
                         help='path to saved network parameters')
-    parser.add_argument('--gpu-pred', action='store_true',
+    group.add_argument('--gpu-pred', action='store_true',
                         help='include to predict on gpu')
-    parser.add_argument('--no-hybridize', action='store_true',
+    group.add_argument('--no-hybridize', action='store_true',
                         help='use symbolic network graph for increased computational eff')
 
     # Network
     group = parser.add_argument_group('Network arguments')
-    parser.add_argument('--host', type=str, default='localhost')
-    parser.add_argument('--port', type=int, default=8080)
+    group.add_argument('--host', type=str, default='localhost')
+    group.add_argument('--port', type=int, default=8080)
 
     args = parser.parse_args()
 
@@ -77,13 +77,16 @@ if __name__ == '__main__':
     # Remove once confidence sums correctly
     test_data = mx.gluon.data.DataLoader(
         mx.gluon.data.vision.MNIST(train=False, transform=lambda data, label: (data.astype(np.float32) / 255, label)),
-        batch_size=1,
+        batch_size=5,
         num_workers=multiprocessing.cpu_count(),
         shuffle=False)
 
     for i, (data, label) in enumerate(test_data):
         if i < 1:
             orig_data = data
+            output = net(data)
+            max_conf = mx.nd.max(data, axis=5)
+            print(max_conf)
 
     logging.info("Starting server")
     bottle.run(host=args.host, port=args.port, debug=True)

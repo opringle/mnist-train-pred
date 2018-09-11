@@ -100,9 +100,9 @@ if __name__ == "__main__":
 
     # Computation
     group = parser.add_argument_group('Computation arguments')
-    parser.add_argument('--gpus', type=int, default=0,
+    group.add_argument('--gpus', type=int, default=0,
                         help='num of gpus to distribute  model training on. 0 for cpu')
-    parser.add_argument('--no-hybridize', action='store_true',
+    group.add_argument('--no-hybridize', action='store_true',
                         help='use symbolic network graph for increased computational eff')
 
     # Regularization

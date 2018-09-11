@@ -10,7 +10,7 @@ class ConvPoolBlock(gluon.nn.HybridSequential):
         super().__init__()
         with self.name_scope():
             self.add(gluon.nn.Conv2D(channels=num_filters, kernel_size=(3, 3), strides=(1, 1), padding=(1, 1)))
-            # self.add(gluon.nn.BatchNorm(axis=1))
+            self.add(gluon.nn.BatchNorm(axis=1))
             self.add(gluon.nn.Activation(activation='relu'))
             if downsample:
                 self.add(gluon.nn.MaxPool2D(pool_size=(2, 2)))
